@@ -21,7 +21,7 @@ public class StateSpaceController {
     }
 
     public DenseMatrix Update(DenseMatrix x) {
-        DenseMatrix u = K.mul(r.sub(x)).add(Kff.mul(r.sub(A.mul(r))));
+        DenseMatrix u = K.mmul(r.sub(x)).add(Kff.mmul(r.sub(A.mmul(r))));
         //TODO: cap u min and max
         return u;
     }
