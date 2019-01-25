@@ -84,7 +84,6 @@ public class StateSpaceTest {
     @SuppressWarnings("Duplicates")
     public void goalTest(DenseMatrix r) {
         StateSpacePlant plant = new StateSpacePlant(1, 2, 1);
-
         plant.A_ = new DenseMatrix("1 0.01; 0 0.98");
         plant.B_ = new DenseMatrix("1e-5; 0.02");
         plant.C_ = new DenseMatrix("1 0");
@@ -123,7 +122,6 @@ public class StateSpaceTest {
     @SuppressWarnings("Duplicates")
     public void testControlSteadyState() {
         StateSpacePlant plant = new StateSpacePlant(1, 2, 1);
-
         plant.A_ = new DenseMatrix("1 0.01; -.03 0.98");
         plant.B_ = new DenseMatrix("1e-5; 0.02");
         plant.C_ = new DenseMatrix("1 0");
@@ -143,6 +141,37 @@ public class StateSpaceTest {
 
         Assert.assertEquals(plant.x_.get(0, 0), controller.r.get(0, 0), 1e-2);
         Assert.assertEquals(plant.x_.get(1, 0), controller.r.get(1, 0), 1e-2);
+    }
+
+    // Ensure that the control signal from the controller stays within the specified
+    // bounds
+    @Test
+    @SuppressWarnings("Duplicates")
+    public void testControlInputConstraint() {
+        StateSpacePlant plant = new StateSpacePlant(1, 2, 1);
+        plant.A_ = new DenseMatrix("1 0.01; 0 0.98");
+        plant.B_ = new DenseMatrix("1e-5; 0.02");
+        plant.C_ = new DenseMatrix("1 0");
+        plant.x_ = new DenseMatrix("-5; 0");
+
+        StateSpaceController controller = new StateSpaceController(1, 2, 1);
+        controller.K = new DenseMatrix("10.0 1.0");
+        controller.A = plant.A_;
+        controller.Kff = (plant.B_.t().mmul(plant.B_)).recpr().mmul(plant.B_.t());
+        controller.r = new DenseMatrix("1.0; 0.0");
+
+        controller.u_max = new DenseMatrix("12");
+        controller.u_min = new DenseMatrix("-12");
+
+        for (int t = 0; t < 1000; t++) {
+            DenseMatrix u = controller.Update(plant.x_);
+            Assert.assertTrue(u.get(0,0) <= controller.u_max.get(0, 0));
+            Assert.assertTrue(u.get(0,0) >= controller.u_min.get(0, 0));
+            plant.Update(u);
+        }
+
+        Assert.assertEquals(plant.x_.get(0, 0), controller.r.get(0, 0), 1e-6);
+        Assert.assertEquals(plant.x_.get(1, 0), controller.r.get(1, 0), 1e-6);
     }
 }
 
