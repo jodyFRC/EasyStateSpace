@@ -81,6 +81,7 @@ public class StateSpaceTest {
         }
     }
 
+    @SuppressWarnings("Duplicates")
     public void goalTest(DenseMatrix r) {
         StateSpacePlant plant = new StateSpacePlant(1, 2, 1);
 
@@ -119,8 +120,29 @@ public class StateSpaceTest {
     // Ensure the controller will hold a correct steady-state goal even if the goal
     // requires a nonzero control signal (via feedforward)
     @Test
+    @SuppressWarnings("Duplicates")
     public void testControlSteadyState() {
+        StateSpacePlant plant = new StateSpacePlant(1, 2, 1);
 
+        plant.A_ = new DenseMatrix("1 0.01; -.03 0.98");
+        plant.B_ = new DenseMatrix("1e-5; 0.02");
+        plant.C_ = new DenseMatrix("1 0");
+        plant.x_ = new DenseMatrix("1; 0");
+
+        StateSpaceController controller = new StateSpaceController(1, 2, 1);
+        controller.K = new DenseMatrix("10.0 1.0");
+        controller.A = plant.A_;
+        controller.Kff = (plant.B_.t().mmul(plant.B_)).recpr().mmul(plant.B_.t());
+        controller.r = new DenseMatrix("3.0; 0.0");
+
+        for (int t = 0; t < 1000; t++) {
+            DenseMatrix u = controller.Update(plant.x_);
+            //plant.Update(new DenseMatrix("0")); //system will converge on zero provided zero input
+            plant.Update(u);
+        }
+
+        Assert.assertEquals(plant.x_.get(0, 0), controller.r.get(0, 0), 1e-2);
+        Assert.assertEquals(plant.x_.get(1, 0), controller.r.get(1, 0), 1e-2);
     }
 }
 
