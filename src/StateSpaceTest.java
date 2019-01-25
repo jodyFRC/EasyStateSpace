@@ -12,10 +12,10 @@ public class StateSpaceTest {
             for (int j = 0; j < 2; j++) {
                 if (i == j) {
                     Assert.assertEquals(plant.A_.get(i, j), 1, 0.0001);
-                    Assert.assertEquals(controller.A.get(i, j), 1, 0.0001);
+                    Assert.assertEquals(controller.A_.get(i, j), 1, 0.0001);
                 } else {
                     Assert.assertEquals(plant.A_.get(i, j), 0, 0.0001);
-                    Assert.assertEquals(controller.A.get(i, j), 0, 0.0001);
+                    Assert.assertEquals(controller.A_.get(i, j), 0, 0.0001);
                 }
             }
         }
@@ -82,7 +82,7 @@ public class StateSpaceTest {
     }
 
     @SuppressWarnings("Duplicates")
-    public void goalTest(DenseMatrix r) {
+    private void goalTest(DenseMatrix r) {
         StateSpacePlant plant = new StateSpacePlant(1, 2, 1);
         plant.A_ = new DenseMatrix("1 0.01; 0 0.98");
         plant.B_ = new DenseMatrix("1e-5; 0.02");
@@ -90,18 +90,18 @@ public class StateSpaceTest {
         plant.x_ = new DenseMatrix("1; 0");
 
         StateSpaceController controller = new StateSpaceController(1, 2, 1);
-        controller.K = new DenseMatrix("10.0 1.0");
-        controller.A = plant.A_;
-        controller.Kff = (plant.B_.t().mmul(plant.B_)).recpr().mmul(plant.B_.t());
-        controller.r = r;
+        controller.K_ = new DenseMatrix("10.0 1.0");
+        controller.A_ = plant.A_;
+        controller.Kff_ = (plant.B_.t().mmul(plant.B_)).recpr().mmul(plant.B_.t());
+        controller.r_ = r;
 
         for (int t = 0; t < 2000; t++) {
             DenseMatrix u = controller.Update(plant.x_);
             plant.Update(u);
         }
 
-        Assert.assertEquals(plant.x_.get(0, 0), controller.r.get(0, 0), 1e-6);
-        Assert.assertEquals(plant.x_.get(1, 0), controller.r.get(1, 0), 1e-6);
+        Assert.assertEquals(plant.x_.get(0, 0), controller.r_.get(0, 0), 1e-6);
+        Assert.assertEquals(plant.x_.get(1, 0), controller.r_.get(1, 0), 1e-6);
     }
 
     // Ensure that adding a controller causes a plant to converge to zero
@@ -128,10 +128,10 @@ public class StateSpaceTest {
         plant.x_ = new DenseMatrix("1; 0");
 
         StateSpaceController controller = new StateSpaceController(1, 2, 1);
-        controller.K = new DenseMatrix("10.0 1.0");
-        controller.A = plant.A_;
-        controller.Kff = (plant.B_.t().mmul(plant.B_)).recpr().mmul(plant.B_.t());
-        controller.r = new DenseMatrix("3.0; 0.0");
+        controller.K_ = new DenseMatrix("10.0 1.0");
+        controller.A_ = plant.A_;
+        controller.Kff_ = (plant.B_.t().mmul(plant.B_)).recpr().mmul(plant.B_.t());
+        controller.r_ = new DenseMatrix("3.0; 0.0");
 
         for (int t = 0; t < 1000; t++) {
             DenseMatrix u = controller.Update(plant.x_);
@@ -139,8 +139,8 @@ public class StateSpaceTest {
             plant.Update(u);
         }
 
-        Assert.assertEquals(plant.x_.get(0, 0), controller.r.get(0, 0), 1e-2);
-        Assert.assertEquals(plant.x_.get(1, 0), controller.r.get(1, 0), 1e-2);
+        Assert.assertEquals(plant.x_.get(0, 0), controller.r_.get(0, 0), 1e-2);
+        Assert.assertEquals(plant.x_.get(1, 0), controller.r_.get(1, 0), 1e-2);
     }
 
     // Ensure that the control signal from the controller stays within the specified
@@ -155,23 +155,55 @@ public class StateSpaceTest {
         plant.x_ = new DenseMatrix("-5; 0");
 
         StateSpaceController controller = new StateSpaceController(1, 2, 1);
-        controller.K = new DenseMatrix("10.0 1.0");
-        controller.A = plant.A_;
-        controller.Kff = (plant.B_.t().mmul(plant.B_)).recpr().mmul(plant.B_.t());
-        controller.r = new DenseMatrix("1.0; 0.0");
+        controller.K_ = new DenseMatrix("10.0 1.0");
+        controller.A_ = plant.A_;
+        controller.Kff_ = (plant.B_.t().mmul(plant.B_)).recpr().mmul(plant.B_.t());
+        controller.r_ = new DenseMatrix("1.0; 0.0");
 
-        controller.u_max = new DenseMatrix("12");
-        controller.u_min = new DenseMatrix("-12");
+        controller.u_max_ = new DenseMatrix("12");
+        controller.u_min_ = new DenseMatrix("-12");
 
         for (int t = 0; t < 1000; t++) {
             DenseMatrix u = controller.Update(plant.x_);
-            Assert.assertTrue(u.get(0,0) <= controller.u_max.get(0, 0));
-            Assert.assertTrue(u.get(0,0) >= controller.u_min.get(0, 0));
+            Assert.assertTrue(u.get(0,0) <= controller.u_max_.get(0, 0));
+            Assert.assertTrue(u.get(0,0) >= controller.u_min_.get(0, 0));
             plant.Update(u);
         }
 
-        Assert.assertEquals(plant.x_.get(0, 0), controller.r.get(0, 0), 1e-6);
-        Assert.assertEquals(plant.x_.get(1, 0), controller.r.get(1, 0), 1e-6);
+        Assert.assertEquals(plant.x_.get(0, 0), controller.r_.get(0, 0), 1e-6);
+        Assert.assertEquals(plant.x_.get(1, 0), controller.r_.get(1, 0), 1e-6);
+    }
+
+    // Ensure that the controller correctly tracks a moving goal
+    @Test
+    @SuppressWarnings("Duplicates")
+    public void testControlTrackMovingGoal() {
+        StateSpacePlant plant = new StateSpacePlant(1, 2, 1);
+        plant.A_ = new DenseMatrix("1 9.9502e-3; 0 9.9005e-1");
+        plant.B_ = new DenseMatrix("4.9834e-5; 9.9502e-3");
+        plant.C_ = new DenseMatrix("1 0");
+        plant.x_ = new DenseMatrix("0; 0");
+
+        StateSpaceController controller = new StateSpaceController(1, 2, 1);
+        controller.K_ = new DenseMatrix("0.0 0.0"); //Zero gains so feedback is eliminated
+        controller.A_ = plant.A_;
+        controller.Kff_ = (plant.B_.t().mmul(plant.B_)).recpr().mmul(plant.B_.t());
+        controller.r_ = new DenseMatrix("0.0; 0.0");
+
+        DenseMatrix r = controller.r_;
+        DenseMatrix expected_u = new DenseMatrix("1.0");
+
+        for (int t = 0; t < 1000; t++) {
+            r = plant.A_.mmul(r).add(plant.B_.mmul(expected_u));
+
+            DenseMatrix u = controller.Update(plant.x_, r);
+            plant.Update(u);
+
+            Assert.assertEquals(plant.x_.get(0, 0), controller.r_.get(0, 0), 1e-3);
+            Assert.assertEquals(plant.x_.get(1, 0), controller.r_.get(1, 0), 1e-3);
+
+            Assert.assertEquals(u.get(0, 0), expected_u.get(0, 0), 1e-3);
+        }
     }
 }
 
