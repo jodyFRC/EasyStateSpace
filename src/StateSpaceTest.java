@@ -2,6 +2,8 @@ import jeigen.DenseMatrix;
 import org.junit.Assert;
 import org.junit.Test;
 
+import javax.swing.plaf.nimbus.State;
+
 public class StateSpaceTest {
     @Test
     public void testInit() {
@@ -165,8 +167,8 @@ public class StateSpaceTest {
 
         for (int t = 0; t < 1000; t++) {
             DenseMatrix u = controller.Update(plant.x_);
-            Assert.assertTrue(u.get(0,0) <= controller.u_max_.get(0, 0));
-            Assert.assertTrue(u.get(0,0) >= controller.u_min_.get(0, 0));
+            Assert.assertTrue(u.get(0, 0) <= controller.u_max_.get(0, 0));
+            Assert.assertTrue(u.get(0, 0) >= controller.u_min_.get(0, 0));
             plant.Update(u);
         }
 
@@ -204,6 +206,103 @@ public class StateSpaceTest {
 
             Assert.assertEquals(u.get(0, 0), expected_u.get(0, 0), 1e-3);
         }
+    }
+
+    // Ensure that the observer's estimation converges to the correct state after a
+    // large initial error in a static system
+    @Test
+    @SuppressWarnings("Duplicates")
+    public void testObserverConvergeInit() {
+        StateSpacePlant plant = new StateSpacePlant(1, 2, 1);
+        plant.A_ = new DenseMatrix("1 9.9502e-3; 0 9.9005e-1");
+        plant.B_ = new DenseMatrix("4.9834e-5; 9.9502e-3");
+        plant.C_ = new DenseMatrix("1 0");
+        plant.x_ = new DenseMatrix("0; 0");
+
+        StateSpaceController controller = new StateSpaceController(1, 2, 1);
+        controller.K_ = new DenseMatrix("0.0 0.0");
+        controller.A_ = plant.A_;
+        controller.Kff_ = (plant.B_.t().mmul(plant.B_)).recpr().mmul(plant.B_.t());
+        controller.r_ = new DenseMatrix("0.0; 0.0");
+
+        DenseMatrix L = new DenseMatrix("1e-1; 1");
+        StateSpaceObserver observer = new StateSpaceObserver(plant, L);
+
+        plant.x_.set(0, 0, 1);
+
+        for (int t = 0; t < 1000; t++) {
+            DenseMatrix u = DenseMatrix.zeros(1, 1);
+            plant.Update(u);
+            observer.Update(u, plant.y());
+        }
+
+        Assert.assertEquals(plant.x_.get(0, 0), observer.plant_.x_.get(0, 0), 0.00001);
+        Assert.assertEquals(plant.x_.get(1, 0), observer.plant_.x_.get(1, 0), 0.00001);
+    }
+
+    // Ensure that the observer's estimation converges to the correct state after a
+    // large initial error in a moving system
+    @Test
+    @SuppressWarnings("Duplicates")
+    public void testObserverMovingConvergeRecover() {
+        StateSpacePlant plant = new StateSpacePlant(1, 2, 1);
+        plant.A_ = new DenseMatrix("1 9.9502e-3; 0 9.9005e-1");
+        plant.B_ = new DenseMatrix("4.9834e-5; 9.9502e-3");
+        plant.C_ = new DenseMatrix("1 0");
+        plant.x_ = new DenseMatrix("0; 0");
+
+        StateSpaceController controller = new StateSpaceController(1, 2, 1);
+        controller.K_ = new DenseMatrix("0.0 0.0");
+        controller.A_ = plant.A_;
+        controller.Kff_ = (plant.B_.t().mmul(plant.B_)).recpr().mmul(plant.B_.t());
+        controller.r_ = new DenseMatrix("0.0; 0.0");
+
+        DenseMatrix L = new DenseMatrix("1e-1; 1");
+        StateSpaceObserver observer = new StateSpaceObserver(plant, L);
+
+        plant.x_.set(0, 0, 1);
+
+        for (int t = 0; t < 1000; t++) {
+            DenseMatrix u = new DenseMatrix("1.0");
+            observer.Update(u, plant.y());
+            plant.Update(u);
+        }
+
+        Assert.assertEquals(plant.x_.get(0, 0), observer.plant_.x_.get(0, 0), 0.00001);
+        Assert.assertEquals(plant.x_.get(1, 0), observer.plant_.x_.get(1, 0), 0.00001);
+    }
+
+    // Ensure that the observer's estimation converges to the correct state when its
+    // model is slightly incorrect
+    @Test
+    @SuppressWarnings("Duplicates")
+    public void testObserverRecoverIncorrectModel() {
+        StateSpacePlant plant = new StateSpacePlant(1, 2, 1);
+        plant.A_ = new DenseMatrix("1 9.9502e-3; 0 9.9005e-1");
+        plant.B_ = new DenseMatrix("4.9834e-5; 9.9502e-3");
+        plant.C_ = new DenseMatrix("1 0");
+        plant.x_ = new DenseMatrix("0; 0");
+
+        StateSpaceController controller = new StateSpaceController(1, 2, 1);
+        controller.K_ = new DenseMatrix("0.0 0.0");
+        controller.A_ = plant.A_;
+        controller.Kff_ = (plant.B_.t().mmul(plant.B_)).recpr().mmul(plant.B_.t());
+        controller.r_ = new DenseMatrix("0.0; 0.0");
+
+        DenseMatrix L = new DenseMatrix("2e-1; 3");
+        StateSpaceObserver observer = new StateSpaceObserver(plant, L);
+
+        plant.A_.set(1, 1, plant.A_.get(1, 1) * 0.985);
+        plant.A_.set(0, 1, plant.A_.get(0, 1) * 0.995);
+
+        for (int t = 0; t < 1000; t++) {
+            DenseMatrix u = new DenseMatrix("1.0");
+            observer.Update(u, plant.y());
+            plant.Update(u);
+        }
+
+        Assert.assertEquals(plant.x_.get(0, 0), observer.plant_.x_.get(0, 0), 0.00001);
+        Assert.assertEquals(plant.x_.get(1, 0), observer.plant_.x_.get(1, 0), 0.00001);
     }
 }
 

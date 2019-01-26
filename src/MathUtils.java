@@ -25,4 +25,18 @@ public class MathUtils {
         return ret;
     }
 
+    public static DenseMatrix CloneMatrix(DenseMatrix toClone) {
+        int A = toClone.rows;
+        int B = toClone.cols;
+        DenseMatrix ret = new DenseMatrix(A, B);
+        for (int i = 0; i < A; i++) {
+            for (int j = 0; j < B; j++) {
+                ret.set(i, j, toClone.get(i, j));
+            }
+        }
+
+        return ret;
+    }
+
+
 }

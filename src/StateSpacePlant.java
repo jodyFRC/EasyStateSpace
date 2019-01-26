@@ -39,6 +39,10 @@ public class StateSpacePlant {
         x_ = DenseMatrix.zeros(A_.rows, 1);
     }
 
+    public DenseMatrix y() {
+        return  C_.mmul(x_);
+    }
+
     public void Update(DenseMatrix u) {
         x_ = A_.mmul(x_).add(B_.mmul(u));
     }
