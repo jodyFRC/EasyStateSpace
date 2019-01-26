@@ -297,6 +297,7 @@ public class StateSpaceTest {
 
         for (int t = 0; t < 1000; t++) {
             DenseMatrix u = new DenseMatrix("1.0");
+            System.out.println(plant.x_);
             observer.Update(u, plant.y());
             plant.Update(u);
         }
