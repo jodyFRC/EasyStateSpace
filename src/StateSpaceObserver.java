@@ -13,9 +13,11 @@ public class StateSpaceObserver {
         L_ = DenseMatrix.zeros(kNumStates, kNumOutputs);
     }
 
+    // xhat_post(n) = xhat(n) + L * (y(n) - C*xhat(n))
+    // xhat(n+1) = A*xhat_post(n) + B*u(n) -- done in plant.Update
     public void Update(DenseMatrix u, DenseMatrix y) {
         DenseMatrix x_add = plant_.x_.add(L_.mmul(y.sub(plant_.y())));
-        plant_.x_ = plant_.x_.add(x_add);
+        plant_.x_ = x_add;
         plant_.Update(u);
     }
 }
