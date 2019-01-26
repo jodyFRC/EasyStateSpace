@@ -93,7 +93,7 @@ public class StateSpaceTest {
 
         StateSpaceController controller = new StateSpaceController(1, 2, 1);
         controller.K_ = new DenseMatrix("10.0 1.0");
-        controller.A_ = plant.A_;
+        controller.A_ = MathUtils.CloneMatrix(plant.A_);
         controller.Kff_ = (plant.B_.t().mmul(plant.B_)).recpr().mmul(plant.B_.t());
         controller.r_ = r;
 
@@ -131,7 +131,7 @@ public class StateSpaceTest {
 
         StateSpaceController controller = new StateSpaceController(1, 2, 1);
         controller.K_ = new DenseMatrix("10.0 1.0");
-        controller.A_ = plant.A_;
+        controller.A_ = MathUtils.CloneMatrix(plant.A_);
         controller.Kff_ = (plant.B_.t().mmul(plant.B_)).recpr().mmul(plant.B_.t());
         controller.r_ = new DenseMatrix("3.0; 0.0");
 
@@ -158,7 +158,7 @@ public class StateSpaceTest {
 
         StateSpaceController controller = new StateSpaceController(1, 2, 1);
         controller.K_ = new DenseMatrix("10.0 1.0");
-        controller.A_ = plant.A_;
+        controller.A_ = MathUtils.CloneMatrix(plant.A_);
         controller.Kff_ = (plant.B_.t().mmul(plant.B_)).recpr().mmul(plant.B_.t());
         controller.r_ = new DenseMatrix("1.0; 0.0");
 
@@ -188,7 +188,7 @@ public class StateSpaceTest {
 
         StateSpaceController controller = new StateSpaceController(1, 2, 1);
         controller.K_ = new DenseMatrix("0.0 0.0"); //Zero gains so feedback is eliminated
-        controller.A_ = plant.A_;
+        controller.A_ = MathUtils.CloneMatrix(plant.A_);
         controller.Kff_ = (plant.B_.t().mmul(plant.B_)).recpr().mmul(plant.B_.t());
         controller.r_ = new DenseMatrix("0.0; 0.0");
 
@@ -221,7 +221,7 @@ public class StateSpaceTest {
 
         StateSpaceController controller = new StateSpaceController(1, 2, 1);
         controller.K_ = new DenseMatrix("0.0 0.0");
-        controller.A_ = plant.A_;
+        controller.A_ = MathUtils.CloneMatrix(plant.A_);
         controller.Kff_ = (plant.B_.t().mmul(plant.B_)).recpr().mmul(plant.B_.t());
         controller.r_ = new DenseMatrix("0.0; 0.0");
 
@@ -253,7 +253,7 @@ public class StateSpaceTest {
 
         StateSpaceController controller = new StateSpaceController(1, 2, 1);
         controller.K_ = new DenseMatrix("0.0 0.0");
-        controller.A_ = plant.A_;
+        controller.A_ = MathUtils.CloneMatrix(plant.A_);
         controller.Kff_ = (plant.B_.t().mmul(plant.B_)).recpr().mmul(plant.B_.t());
         controller.r_ = new DenseMatrix("0.0; 0.0");
 
@@ -285,11 +285,11 @@ public class StateSpaceTest {
 
         StateSpaceController controller = new StateSpaceController(1, 2, 1);
         controller.K_ = new DenseMatrix("0.0 0.0");
-        controller.A_ = plant.A_;
+        controller.A_ = MathUtils.CloneMatrix(plant.A_);
         controller.Kff_ = (plant.B_.t().mmul(plant.B_)).recpr().mmul(plant.B_.t());
         controller.r_ = new DenseMatrix("0.0; 0.0");
 
-        DenseMatrix L = new DenseMatrix("2e-1; 3");
+        DenseMatrix L = new DenseMatrix("2e-1; 10");
         StateSpaceObserver observer = new StateSpaceObserver(plant, L);
 
         plant.A_.set(1, 1, plant.A_.get(1, 1) * 0.985);
@@ -297,13 +297,12 @@ public class StateSpaceTest {
 
         for (int t = 0; t < 1000; t++) {
             DenseMatrix u = new DenseMatrix("1.0");
-            System.out.println(plant.x_);
             observer.Update(u, plant.y());
             plant.Update(u);
         }
 
-        Assert.assertEquals(plant.x_.get(0, 0), observer.plant_.x_.get(0, 0), 0.00001);
-        Assert.assertEquals(plant.x_.get(1, 0), observer.plant_.x_.get(1, 0), 0.00001);
+        Assert.assertEquals(plant.x_.get(0, 0), observer.plant_.x_.get(0, 0), 0.01);
+        Assert.assertEquals(plant.x_.get(1, 0), observer.plant_.x_.get(1, 0), 0.1);
     }
 }
 

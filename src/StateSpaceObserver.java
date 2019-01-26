@@ -5,7 +5,7 @@ public class StateSpaceObserver {
     public DenseMatrix L_;
 
     public StateSpaceObserver(StateSpacePlant plant, DenseMatrix L) {
-        plant_ = plant;
+        plant_ = new StateSpacePlant(MathUtils.CloneMatrix(plant.A_), MathUtils.CloneMatrix(plant.B_), MathUtils.CloneMatrix(plant.C_), MathUtils.CloneMatrix(plant.D_), MathUtils.CloneMatrix(plant.x_));
         L_ = L;
     }
 

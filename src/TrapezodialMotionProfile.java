@@ -49,7 +49,7 @@ public class TrapezodialMotionProfile {
     }
 
     public MotionProfilePosition Calculate(double t) {
-        MotionProfilePosition result = initial_;
+        MotionProfilePosition result = new MotionProfilePosition(initial_.position, initial_.velocity);
 
         if (t < end_accel_) {
             result.velocity += t * constraints_.max_acceleration;
@@ -74,6 +74,10 @@ public class TrapezodialMotionProfile {
         }
 
         return Direct(result);
+    }
+
+    public double total_time() {
+        return end_deccel_;
     }
 
     public double TimeLeftUntil(double target) {
@@ -160,7 +164,7 @@ public class TrapezodialMotionProfile {
     }
 
     public MotionProfilePosition Direct(MotionProfilePosition in) {
-        MotionProfilePosition result = in;
+        MotionProfilePosition result = new MotionProfilePosition(in.position, in.velocity);
         result.position *= direction_;
         result.velocity *= direction_;
         return result;
